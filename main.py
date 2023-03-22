@@ -1,4 +1,5 @@
 import pandas as pd
+import time
 from db import DBConnector
 from config import QUERY_FILENAME, JSON_COLUMNS
 from sqlalchemy import text
@@ -30,15 +31,33 @@ def breakout(df, json_columns):
     return df
 
 
-def query_database(query, flavor="mysql", alias="read", dbconfig_fn="~/.dbconfig.yaml"):
+def query_database(
+    query, flavor="mysql", alias="read", dbconfig_fn="~/.dbconfig.yaml", verbose=True
+):
     """
     Queries the database using the query passed in and returns the resulting dataframe
+    :param query: Query to run
+    :param flavor: Flavor of the database to connect to
+    :param alias: Alias of the database to connect to
+    :param dbconfig_fn: Path to the dbconfig file
+    :param verbose: Whether or not to print time elapsed
+    :return: Pandas dataframe
     """
+
     # Use the database connection to query the database and return a pandas series of json objects
     dbc = DBConnector(flavor=flavor, alias=alias, dbconfig_fn=dbconfig_fn)
 
+    # Time the query
+    t1 = time.time()
+    if verbose:
+        print("Querying database...")
+
     # Query the database
     df = dbc.query(text(query))
+
+    # Print the time elapsed
+    if verbose:
+        print("Time elapsed: {} seconds".format(time.time() - t1))
 
     return df
 
