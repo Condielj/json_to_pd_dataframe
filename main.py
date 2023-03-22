@@ -1,5 +1,8 @@
 import pandas as pd
+import json
 import time
+
+from pandas.io.json import json_normalize
 from db import DBConnector
 from config import QUERY_FILENAME, JSON_COLUMNS
 from sqlalchemy import text
@@ -8,25 +11,26 @@ from sqlalchemy import text
 def breakout(df, json_columns):
     """
     Recieves a dataframe a list of column names that contain json objects and returns a dataframe with the json objects broken out into columns, with their names prepended to the new column names.
-    :param series: Pandas series of json objects
-    :param series_name: Name of the series, used to append to the column names
-    :param series2: Pandas series of json objects
-    :param series2_name: Name of the series2, used to append to the column names
+    :param df: Pandas dataframe
+    :param json_columns: List of column names  in df that contain json objects
     :return: Pandas dataframe
     """
-    # For each column in json_columns, break out the json objects into columns
-    for column in json_columns:
-        # Create a new dataframe from the json objects in the column
-        df_new = pd.json_normalize(df[column])
 
-        # Rename the columns to prepend the column name to the column name
-        df_new = df_new.rename(columns=lambda x: column + "_" + x if x != "id" else x)
+    for col in json_columns:
+        # Convert json strings in the column to dictionaries
+        df[col] = df[col].apply(lambda x: json.loads(x) if x else None)
 
-        # Drop the original column
-        df = df.drop(column, axis=1)
+        # Normalize json dictionaries and create new columns
+        expanded_data = json_normalize(df[col])
 
-        # Join the new dataframe to the original dataframe
-        df = df.join(df_new)
+        # Rename new columns by prepending the json column name
+        expanded_data.columns = [f"{col}.{c}" for c in expanded_data.columns]
+
+        # Merge expanded_data with the original dataframe
+        df = pd.concat([df, expanded_data], axis=1)
+
+        # Drop the original json column
+        df.drop(col, axis=1, inplace=True)
 
     return df
 
@@ -57,7 +61,7 @@ def query_database(
 
     # Print the time elapsed
     if verbose:
-        print("Time elapsed: {} seconds".format(time.time() - t1))
+        print("Done! Time elapsed: {} seconds".format(round(time.time() - t1), 2))
 
     return df
 
