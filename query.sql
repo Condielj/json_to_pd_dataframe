@@ -5,5 +5,4 @@ FROM
 	landed_cost.LandedCostLog
 WHERE
 	storeId = 4215
-	AND MONTH(dateCreated) >= 2
-	AND MONTH(dateCreated) <= 3
+	AND YEAR(dateCreated) = 2023
